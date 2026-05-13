@@ -7,6 +7,7 @@ import ModelTable from "@/components/ModelTable";
 import ModelCard  from "@/components/ModelCard";
 import StatsGrid  from "@/components/StatsGrid";
 import CategoryChart from "@/components/CategoryChart";
+import WorldMap from "@/components/WorldMap";
 
 const DEFAULT_FILTERS: FilterState = {
   country: "All", category: "All", company: "All", search: "",
@@ -19,6 +20,7 @@ export default function ModelExplorer({
   models: AIModel[];
   updatedAt?: string;
 }) {
+  const [tab, setTab]         = useState<"explorer" | "map">("explorer");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [view, setView]       = useState<"table" | "cards">("table");
 
@@ -42,8 +44,31 @@ export default function ModelExplorer({
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-      {/* Stats */}
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+        {([["explorer", "🔍 Explorer"], ["map", "🌍 World Map"]] as const).map(([t, label]) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === t
+                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats always visible */}
       <StatsGrid models={models} />
+
+      {/* World Map tab */}
+      {tab === "map" && <WorldMap models={models} />}
+
+      {/* Explorer tab */}
+      {tab === "explorer" && (<>
 
       {/* Chart + category legend */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,6 +159,8 @@ export default function ModelExplorer({
           })}. Updates automatically every Monday.
         </p>
       )}
+      </>)}
+
     </main>
   );
 }
