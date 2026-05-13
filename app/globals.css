@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tooltip-bg: #1f2937;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --tooltip-bg: #f9fafb;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
