@@ -57,10 +57,10 @@ export async function fetchAndParseWikipediaTables(): Promise<WikiRow[]> {
     // Each wikitable on the page is one year-section of models
     $("table.wikitable").each((_, table) => {
       // Get column headers
-      const headers: string[] = [];
-      $(table)
+      const headers: string[] = $(table)
         .find("tr:first-child th")
-        .each((_, th) => headers.push(cleanText($(th).html() ?? "").toLowerCase()));
+        .map((_, th) => cleanText($(th).html() ?? "").toLowerCase())
+        .toArray();
 
       if (!headers.length) return; // skip tables with no header row
 
