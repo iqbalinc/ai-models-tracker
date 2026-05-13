@@ -23,9 +23,9 @@ export default function ModelExplorer({
   const [view, setView]       = useState<"table" | "cards">("table");
 
   // Derived filter options
-  const countries  = useMemo(() => [...new Set(models.map((m) => m.country))].sort(),  [models]);
-  const categories = useMemo(() => [...new Set(models.map((m) => m.category))].sort(), [models]);
-  const companies  = useMemo(() => [...new Set(models.map((m) => m.company))].sort(),  [models]);
+  const countries  = useMemo(() => Array.from(new Set(models.map((m) => m.country))).sort(),  [models]);
+  const categories = useMemo(() => Array.from(new Set(models.map((m) => m.category))).sort(), [models]);
+  const companies  = useMemo(() => Array.from(new Set(models.map((m) => m.company))).sort(),  [models]);
 
   // Apply filters
   const filtered = useMemo(() => {
