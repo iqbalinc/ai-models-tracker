@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { AIModel, FilterState } from "@/lib/types";
 import FilterBar from "@/components/FilterBar";
 import ModelTable from "@/components/ModelTable";
@@ -22,7 +22,12 @@ export default function ModelExplorer({
 }) {
   const [tab, setTab]         = useState<"explorer" | "map">("explorer");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [view, setView]       = useState<"table" | "cards">("table");
+
+  // Default to cards on phones, table on wider screens
+  const [view, setView] = useState<"table" | "cards">("cards");
+  useEffect(() => {
+    setView(window.innerWidth >= 768 ? "table" : "cards");
+  }, []);
 
   // Derived filter options
   const countries  = useMemo(() => Array.from(new Set(models.map((m) => m.country))).sort(),  [models]);
@@ -42,15 +47,15 @@ export default function ModelExplorer({
   }, [models, filters]);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
-      {/* Tab switcher */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+      {/* Tab switcher — full-width on mobile, auto on larger screens */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-fit">
         {([["explorer", "🔍 Explorer"], ["map", "🌍 World Map"]] as const).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
               tab === t
                 ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -70,7 +75,7 @@ export default function ModelExplorer({
       {/* Explorer tab */}
       {tab === "explorer" && (<>
 
-      {/* Chart + category legend */}
+      {/* Chart + category legend — stacked on mobile, side-by-side on md+ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <CategoryChart models={models} />
         <div className="md:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
@@ -91,12 +96,12 @@ export default function ModelExplorer({
               ["Multilingual","#14b8a6", "Trained across many human languages"],
               ["Research",    "#a1a1aa", "Encoder/decoder NLP infrastructure"],
             ].map(([cat, color, desc]) => (
-              <div key={cat} className="flex items-center gap-2 text-xs">
+              <div key={cat} className="flex items-center gap-2 text-xs py-0.5">
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: color }}
                 />
-                <span className="font-medium text-gray-900 dark:text-white">{cat}:</span>
+                <span className="font-medium text-gray-900 dark:text-white shrink-0">{cat}:</span>
                 <span className="text-gray-500 dark:text-gray-400 truncate">{desc}</span>
               </div>
             ))}
@@ -115,7 +120,7 @@ export default function ModelExplorer({
         totalCount={models.length}
       />
 
-      {/* View toggle */}
+      {/* View toggle + count */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           {filtered.length} model{filtered.length !== 1 ? "s" : ""}
@@ -125,7 +130,7 @@ export default function ModelExplorer({
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-2 rounded-md text-xs font-medium transition-colors min-h-[36px] ${
                 view === v
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -141,7 +146,7 @@ export default function ModelExplorer({
       {view === "table" ? (
         <ModelTable models={filtered} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {filtered.length === 0 ? (
             <p className="col-span-full text-center py-16 text-gray-400 dark:text-gray-600">
               No models match your filters.
@@ -154,9 +159,7 @@ export default function ModelExplorer({
 
       {updatedAt && (
         <p className="text-xs text-center text-gray-400 dark:text-gray-600 pb-4">
-          Data last refreshed {new Date(updatedAt).toLocaleDateString("en-US", {
-            weekday: "long", month: "long", day: "numeric", year: "numeric",
-          })}. Updates automatically every Monday.
+          Sourced live from Wikipedia · refreshes automatically every hour
         </p>
       )}
       </>)}

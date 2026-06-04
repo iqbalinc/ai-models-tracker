@@ -14,16 +14,37 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white;
   -webkit-font-smoothing: antialiased;
+  /* Respect safe areas on notched phones (iPhone, etc.) */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Mobile tap highlight */
+/* Remove tap highlight on all interactive elements */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent accidental text selection on UI controls */
+button, select, label {
+  user-select: none;
+}
+
+/* Smooth scrolling inside the overflow table on mobile */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: none;
+}
+
+/* Sticky header shadow when scrolled */
+header[class*="sticky"] {
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .line-clamp-3 {

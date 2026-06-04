@@ -25,7 +25,7 @@ function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-3 py-2.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[44px] sm:min-h-0 w-full"
       >
         <option value="All">All</option>
         {options.map((o) => (
@@ -59,8 +59,12 @@ export default function FilterBar({
           type="search"
           value={filters.search}
           onChange={(e) => set("search")(e.target.value)}
-          placeholder="Search model name, company, or description…"
-          className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full"
+          placeholder="Model name, company, or description…"
+          className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-3 py-2.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 w-full min-h-[44px] sm:min-h-0"
+          inputMode="search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
         />
       </div>
 
@@ -74,13 +78,13 @@ export default function FilterBar({
       {/* Result count + clear */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-sm text-gray-500 dark:text-gray-400">
-          Showing <span className="font-medium text-gray-900 dark:text-white">{resultCount}</span> of{" "}
-          {totalCount} models
+          Showing <span className="font-medium text-gray-900 dark:text-white">{resultCount}</span>{" "}
+          of {totalCount} models
         </span>
         {hasActive && (
           <button
             onClick={() => onChange({ country: "All", category: "All", company: "All", search: "" })}
-            className="text-sm text-brand-600 dark:text-brand-400 hover:underline"
+            className="text-sm text-brand-600 dark:text-brand-400 hover:underline min-h-[44px] flex items-center px-2 -mr-2"
           >
             Clear filters
           </button>
