@@ -8,6 +8,7 @@
 
 import { fetchAndParseWikipediaTables } from "@/lib/scraper";
 import { classifyCategory, inferCountry, buildDescription, normalizeLicense } from "@/lib/classifier";
+import { sortByPopularity } from "@/lib/popularity";
 import { SEED_MODELS } from "@/lib/seed-data";
 import type { AIModel } from "@/lib/types";
 import Header from "@/components/Header";
@@ -35,11 +36,7 @@ async function getModels(): Promise<{ models: AIModel[]; updatedAt: string }> {
       updated_at:  new Date().toISOString(),
     }));
 
-    models.sort((a, b) =>
-      b.year.localeCompare(a.year) || a.company.localeCompare(b.company)
-    );
-
-    return { models, updatedAt: new Date().toISOString() };
+    return { models: sortByPopularity(models), updatedAt: new Date().toISOString() };
   } catch (err) {
     console.warn("[page] Wikipedia fetch failed, using seed data:", err);
 

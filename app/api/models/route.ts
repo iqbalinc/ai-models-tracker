@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { fetchAndParseWikipediaTables } from "@/lib/scraper";
 import { classifyCategory, inferCountry, buildDescription, normalizeLicense } from "@/lib/classifier";
+import { sortByPopularity } from "@/lib/popularity";
 import type { AIModel } from "@/lib/types";
 
 // Cache at the CDN edge — revalidate every hour automatically
@@ -40,13 +41,8 @@ export async function GET() {
       updated_at:  new Date().toISOString(),
     }));
 
-    // Sort: newest first, then alphabetically by company
-    models.sort((a, b) =>
-      b.year.localeCompare(a.year) || a.company.localeCompare(b.company)
-    );
-
     return NextResponse.json({
-      models,
+      models: sortByPopularity(models),
       updatedAt:  new Date().toISOString(),
       source:     "Wikipedia — List of large language models",
       totalCount: models.length,
