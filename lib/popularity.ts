@@ -111,40 +111,54 @@ const MODEL_BOOSTS: Array<[RegExp, number]> = [
   [/galaxy\s*ai/i,         26],
 ];
 
-/** Return a numeric popularity score for a model. Higher = more popular. */
-export function popularityScore(model: AIModel): number {
-  const devKey = model.company.toLowerCase().trim();
-
-  // Company base score — exact then partial match
-  let companyScore = COMPANY_SCORES[devKey] ?? 0;
-  if (!companyScore) {
-    for (const [key, score] of Object.entries(COMPANY_SCORES)) {
-      if (devKey.includes(key)) { companyScore = score; break; }
-    }
+/** Look up the company base score (exact then partial match). */
+function companyBaseScore(company: string): number {
+  const key = company.toLowerCase().trim();
+  if (COMPANY_SCORES[key]) return COMPANY_SCORES[key];
+  for (const [k, score] of Object.entries(COMPANY_SCORES)) {
+    if (key.includes(k)) return score;
   }
-
-  // Model name boost
-  let nameBoost = 0;
-  for (const [pattern, boost] of MODEL_BOOSTS) {
-    if (pattern.test(model.model)) {
-      nameBoost = Math.max(nameBoost, boost);
-    }
-  }
-
-  // Recency bonus: +1 per year above 2020 (max +6 for 2026)
-  const year = parseInt(model.year, 10) || 2020;
-  const recency = Math.max(0, year - 2020);
-
-  return companyScore + nameBoost + recency;
+  return 0;
 }
 
-/** Sort models by popularity descending; ties broken by year then company. */
+/** Name boost for a specific model. */
+function modelNameBoost(modelName: string): number {
+  let best = 0;
+  for (const [pattern, boost] of MODEL_BOOSTS) {
+    if (pattern.test(modelName)) best = Math.max(best, boost);
+  }
+  return best;
+}
+
+/**
+ * Sort models grouped by company (most popular company first),
+ * then within each company by year (newest first) then by name boost.
+ *
+ * All OpenAI models appear together at the top, all Google models next, etc.
+ */
 export function sortByPopularity(models: AIModel[]): AIModel[] {
+  // Compute the best score for each company across all its models so that
+  // a company with a blockbuster model doesn't get buried by its average.
+  const companyScore = new Map<string, number>();
+  for (const m of models) {
+    const score = companyBaseScore(m.company);
+    const prev  = companyScore.get(m.company) ?? 0;
+    if (score > prev) companyScore.set(m.company, score);
+  }
+
   return [...models].sort((a, b) => {
-    const diff = popularityScore(b) - popularityScore(a);
-    if (diff !== 0) return diff;
-    // Tie-break: newer first, then alphabetical company
+    // 1. Company group — higher company score comes first
+    const companyDiff = (companyScore.get(b.company) ?? 0) - (companyScore.get(a.company) ?? 0);
+    if (companyDiff !== 0) return companyDiff;
+
+    // 2. Within the same company — newest year first
     if (b.year !== a.year) return b.year.localeCompare(a.year);
-    return a.company.localeCompare(b.company);
+
+    // 3. Same company + same year — more famous model name first
+    const boostDiff = modelNameBoost(b.model) - modelNameBoost(a.model);
+    if (boostDiff !== 0) return boostDiff;
+
+    // 4. Final tie-break — alphabetical model name
+    return a.model.localeCompare(b.model);
   });
 }
