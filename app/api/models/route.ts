@@ -1,22 +1,61 @@
-import { NextResponse } from "next/server";
-import { createBrowserClient } from "@/lib/supabase";
+/**
+ * GET /api/models
+ *
+ * Fetches AI model data directly from Wikipedia — no database, no secrets,
+ * no environment variables required. Cached by Next.js for 1 hour so every
+ * visitor gets fresh data without hammering Wikipedia.
+ *
+ * Cost: $0. Dependencies: none beyond the app itself.
+ */
 
-export const revalidate = 3600; // cache for 1 hour
+import { NextResponse } from "next/server";
+import { fetchAndParseWikipediaTables } from "@/lib/scraper";
+import { classifyCategory, inferCountry, buildDescription, normalizeLicense } from "@/lib/classifier";
+import type { AIModel } from "@/lib/types";
+
+// Cache at the CDN edge — revalidate every hour automatically
+export const revalidate = 3600;
 
 export async function GET() {
   try {
-    const supabase = createBrowserClient();
-    const { data, error } = await supabase
-      .from("models")
-      .select("*")
-      .order("year", { ascending: false })
-      .order("company", { ascending: true });
+    const rows = await fetchAndParseWikipediaTables();
 
-    if (error) throw error;
+    if (!rows.length) {
+      return NextResponse.json(
+        { error: "Wikipedia returned no data — try again shortly." },
+        { status: 503 }
+      );
+    }
 
-    return NextResponse.json({ models: data ?? [], updatedAt: new Date().toISOString() });
+    const models: AIModel[] = rows.map((row, i) => ({
+      id:          `wiki-${i}`,
+      company:     row.developer,
+      country:     inferCountry(row.developer),
+      model:       row.name,
+      category:    classifyCategory(row),
+      description: buildDescription(row),
+      year:        row.year,
+      open_source: normalizeLicense(row.license),
+      created_at:  new Date().toISOString(),
+      updated_at:  new Date().toISOString(),
+    }));
+
+    // Sort: newest first, then alphabetically by company
+    models.sort((a, b) =>
+      b.year.localeCompare(a.year) || a.company.localeCompare(b.company)
+    );
+
+    return NextResponse.json({
+      models,
+      updatedAt:  new Date().toISOString(),
+      source:     "Wikipedia — List of large language models",
+      totalCount: models.length,
+    });
   } catch (err) {
-    console.error("[/api/models] Error:", err);
-    return NextResponse.json({ error: "Failed to fetch models" }, { status: 500 });
+    console.error("[/api/models] Wikipedia fetch failed:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch models from Wikipedia." },
+      { status: 500 }
+    );
   }
 }
