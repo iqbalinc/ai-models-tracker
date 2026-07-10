@@ -36,7 +36,7 @@ export default function ModelExplorer({
 }) {
   const [tab, setTab]           = useState<"explorer" | "map">("explorer");
   const [filters, setFilters]   = useState<FilterState>(DEFAULT_FILTERS);
-  const [showGuide, setGuide]   = useState(false);
+  const [showGuide, setGuide]   = useState(true);
   const [view, setView]         = useState<"table" | "cards">("cards");
 
   useEffect(() => {

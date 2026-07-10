@@ -131,14 +131,53 @@ function modelNameBoost(modelName: string): number {
 }
 
 /**
- * Sort models grouped by company (most popular company first),
- * then within each company by year (newest first) then by name boost.
+ * Extract a [major, minor, patch] version tuple from a model name.
  *
- * All OpenAI models appear together at the top, all Google models next, etc.
+ * Strategy:
+ *  1. Look for X.Y.Z  (e.g. "3.5.1")
+ *  2. Look for X.Y    (e.g. "GPT-4.5", "Claude 3.5", "Llama 3.1")
+ *  3. Look for a standalone X that isn't a parameter count
+ *     — skips numbers immediately followed by B/M/K/T (billions, millions, etc.)
+ *       e.g. "70B", "8B" are param counts, not versions
+ *  4. No version found → [Infinity, Infinity, Infinity] so it sorts to the end
+ *
+ * Examples:
+ *  "GPT-4.5"           → [4, 5, 0]
+ *  "GPT-5.5"           → [5, 5, 0]
+ *  "Claude 3.5 Sonnet" → [3, 5, 0]
+ *  "Llama 3.1 70B"     → [3, 1, 0]   (70B skipped)
+ *  "o1"                → [1, 0, 0]
+ *  "o4-mini"           → [4, 0, 0]
+ *  "GPT-4o"            → [4, 0, 0]
+ *  "BERT"              → [∞, ∞, ∞]  → sorts alphabetically at end
+ */
+function extractVersion(name: string): [number, number, number] {
+  let m: RegExpMatchArray | null;
+
+  // X.Y.Z
+  m = name.match(/(\d+)\.(\d+)\.(\d+)/);
+  if (m) return [+m[1], +m[2], +m[3]];
+
+  // X.Y
+  m = name.match(/(\d+)\.(\d+)/);
+  if (m) return [+m[1], +m[2], 0];
+
+  // Standalone integer not followed by a param-count suffix (B/M/K/T)
+  m = name.match(/\b(\d+)\b(?![BMKTbmkt])/);
+  if (m) return [+m[1], 0, 0];
+
+  return [Infinity, Infinity, Infinity];
+}
+
+/**
+ * Sort models grouped by company (most popular company first),
+ * then within each company by version number ascending
+ * (e.g. GPT-4 → GPT-4.5 → GPT-5 → GPT-5.5).
+ *
+ * Models with no version number sort alphabetically after all versioned ones.
  */
 export function sortByPopularity(models: AIModel[]): AIModel[] {
-  // Compute the best score for each company across all its models so that
-  // a company with a blockbuster model doesn't get buried by its average.
+  // Compute the best score for each company so a niche model doesn't bury its org.
   const companyScore = new Map<string, number>();
   for (const m of models) {
     const score = companyBaseScore(m.company);
@@ -147,18 +186,20 @@ export function sortByPopularity(models: AIModel[]): AIModel[] {
   }
 
   return [...models].sort((a, b) => {
-    // 1. Company group — higher company score comes first
+    // 1. Company group — higher company score first
     const companyDiff = (companyScore.get(b.company) ?? 0) - (companyScore.get(a.company) ?? 0);
     if (companyDiff !== 0) return companyDiff;
 
-    // 2. Within the same company — newest year first
-    if (b.year !== a.year) return b.year.localeCompare(a.year);
+    // 2. Within same company — version number ascending (4 → 4.5 → 5 → 5.5)
+    const [aMaj, aMin, aPat] = extractVersion(a.model);
+    const [bMaj, bMin, bPat] = extractVersion(b.model);
 
-    // 3. Same company + same year — more famous model name first
-    const boostDiff = modelNameBoost(b.model) - modelNameBoost(a.model);
-    if (boostDiff !== 0) return boostDiff;
+    if (aMaj !== bMaj) return aMaj - bMaj;
+    if (aMin !== bMin) return aMin - bMin;
+    if (aPat !== bPat) return aPat - bPat;
 
-    // 4. Final tie-break — alphabetical model name
+    // 3. Same version tuple (or both unversioned) — alphabetical by model name
+    //    This also handles the case where both are unversioned (Infinity ties)
     return a.model.localeCompare(b.model);
   });
 }
